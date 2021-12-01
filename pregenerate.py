@@ -33,7 +33,7 @@ def main():
     startCoord = -1 * PARAM_RADIUS
     endCoord = PARAM_RADIUS
 
-    PARAM_GAP = 256
+    PARAM_GAP = 256  # This number should be the server view distance * 16
 
     totalChunks = math.floor(PARAM_RADIUS**2 * 4)
     print("Required generation of %i chunks" % totalChunks)
@@ -71,26 +71,23 @@ def main():
         for z_coord in chunkRange:
             z_coord = z_coord * opposite
 
-            child.sendline('tp %s %i 255 %i 0 45' % (PARAM_PLAYER, x_coord, z_coord))
-            child.expect('Teleported %s' % PARAM_PLAYER)
-            time.sleep(PARAM_DELAY)
-            child.sendline('tp %s %i 255 %i -90 45' % (PARAM_PLAYER, x_coord, z_coord))
-            child.expect('Teleported %s' % PARAM_PLAYER)
-            time.sleep(PARAM_DELAY)
-            child.sendline('tp %s %i 255 %i -180 45' % (PARAM_PLAYER, x_coord, z_coord))
-            child.expect('Teleported %s' % PARAM_PLAYER)
-            time.sleep(PARAM_DELAY)
-            child.sendline('tp %s %i 255 %i -90 45' % (PARAM_PLAYER, x_coord, z_coord))
-            child.expect('Teleported %s' % PARAM_PLAYER)
-            time.sleep(PARAM_DELAY)
+            cur_rot = 0
+            for i in range(4):
+                child.sendline('tp %s %i 255 %i %i 45' % (PARAM_PLAYER, x_coord, z_coord, cur_rot))
+                child.expect('Teleported %s' % PARAM_PLAYER)
+
+                cur_rot = cur_rot - 90
+                if cur_rot < -180:
+                    cur_rot = cur_rot + 360
+
+                time.sleep(PARAM_DELAY)
 
             count = count + 1
             perc = round((float(count) / float(totalLogicalChunks)) * 100, 2)
             if perc != lastPerc:
                 print("%.2f Percent Done" % perc)
                 lastPerc = perc
-
-            #time.sleep(PARAM_DELAY)
+            
         opposite = opposite * -1
 
     elapsed = datetime.datetime.now() - begin_time
