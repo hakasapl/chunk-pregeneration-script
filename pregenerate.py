@@ -10,6 +10,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--delay", help="Time between delays", type=float, default=0.1, required=False)
     parser.add_argument("-m", "--memory", help="Memory to allocate to JVM", type=int, default=2048, required=False)
+    parser.add_argument("-x", "--xcoord", help="Starting X-coord", type=int, default=None, required=False)
     parser.add_argument("player", help="Player name to expect on server")
     parser.add_argument("server", help="Path to minecraft server.jar")
     parser.add_argument("radius", help="Radius of blocks from spawn to generate", type=int)
@@ -20,6 +21,7 @@ def main():
     PARAM_PLAYER = args.player
     PARAM_JARPATH = args.server
     PARAM_RADIUS = args.radius
+    PARAM_XSTART = args.xcoord
 
     # checks
     if not os.path.exists(PARAM_JARPATH):
@@ -62,15 +64,25 @@ def main():
     begin_time = datetime.datetime.now()
 
     # start pregeneration
-    chunkRange = range(startCoord, endCoord, PARAM_GAP)
-    count = 0
     lastFloor = -1
     opposite = 1
     lastPerc = -1
-    for x_coord in chunkRange:
-        for z_coord in chunkRange:
-            z_coord = z_coord * opposite
 
+    chunkRange_z = range(startCoord, endCoord, PARAM_GAP)
+
+    if PARAM_XSTART is not None:
+        chunkRange_x = range(PARAM_XSTART, endCoord, PARAM_GAP)
+    else:
+        chunkRange_x = range(startCoord, endCoord, PARAM_GAP)
+
+    for x_coord in chunkRange_x:
+        perc = round((float(x_coord + endCoord) / float(endCoord * 2)) * 100, 2)
+        if perc != lastPerc:
+            print("%.2f Percent Done" % perc)
+            child.sendline('say %.2f Percent Done' % perc)
+            lastPerc = perc
+
+        for z_coord in chunkRange_z:
             cur_rot = 0
             for i in range(4):
                 child.sendline('tp %s %i 255 %i %i 45' % (PARAM_PLAYER, x_coord, z_coord, cur_rot))
@@ -82,12 +94,6 @@ def main():
 
                 time.sleep(PARAM_DELAY)
 
-            count = count + 1
-            perc = round((float(count) / float(totalLogicalChunks)) * 100, 2)
-            if perc != lastPerc:
-                print("%.2f Percent Done" % perc)
-                lastPerc = perc
-            
         opposite = opposite * -1
 
     elapsed = datetime.datetime.now() - begin_time
